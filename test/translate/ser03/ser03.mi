@@ -1,0 +1,11 @@
+NODE|start|none|this|start
+NODE|java.io.ObjectOutputStream: void <init>(java.io.OutputStream)|none|this|a
+NODE|java.io.ObjectOutputStream: void writeObject(java.lang.Object)|arg1==sensitive|this|b
+NODE|java.io.ObjectOutputStream: void writeObject(java.lang.Object)|arg1==not_sensitive|this|c
+NODE|end|none|this|end
+EDGE|start|a|none
+EDGE|a|b|SER03
+EDGE|a|c|none
+EDGE|b|end|none
+EDGE|c|end|none
+TAG|<Point: void <init>(double,double)>|this()|sensitive

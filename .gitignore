@@ -1,0 +1,3 @@
+*.un~
+rules/**
+**__pycache__**

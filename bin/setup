@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# ================================
+# Script to setup the required jar files
+# rt.jar, rt.o that is the 
+# default library
+# ================================
+
+# CHECKS
+./checker
+
+if [ -z $XVSA_HOME ];
+then
+    echo "XVSA_HOME is not set yet"
+fi
+
+if [ -z $JAVA_HOME ];
+then
+    echo "JAVA_HOME is not set yet"
+fi
+
+# if everything is set get the rt.o file
+$XVSA_HOME/lib/1.0/mapfej -dumpMethodName=true -libGenOnly=true -cp=$JAVA_HOME/jre/lib/jsse.jar -cp=$JAVA_HOME/jre/lib/charsets.jar -VTABLE=true -fC,$JAVA_HOME/jre/lib/rt.jar -fB,rt.o
+
+mv rt.o ../lib
+mv rt.o.vtable ../lib
+mv rt.o.vtable.mi ../lib 

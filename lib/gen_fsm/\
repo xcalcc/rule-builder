@@ -1,0 +1,123 @@
+#!/usr/bin/python3
+# =====================
+# fsm
+# modelling of fsm with Graph data structure
+# contains Node, Edge, and Graph
+# =====================
+
+from usr_graph import Graph, Node, Edge
+
+class FSM_Node:
+    def __init__(self, num, builtin=None):
+        if not builtin:
+            self.name = builtin
+             
+        else:
+            self.name = 's'+num  # identifier
+        self.edges = [] # list of nodes adjacent to this node
+
+    def add_edge(self, e):
+        self.edges.append(e)     
+
+class FSM_Edge:
+    # Edge represents transition detail from 1 state(node) to another
+    def __init__(self, start, target, fname, key, condition, err):
+        self.start = start # Start Node
+        self.target = target # Target Node 
+        self.fname = fname # Function Name
+        self.key = key # key (this, arg(1), null, return)
+        self.condition = condition # condition for this transition
+        self.err = err # check if error exists (!none)
+    
+    def __repr__(self):
+        # visualization of edges
+        return (
+            f"start = {self.start.name}\n"
+            f"target = {self.target.name\n"
+            f"function name = {self.mang_fname}\n"
+            f"condition = {self.condition}\n"
+            f"error = {self.err}"
+        )
+
+class FSM_Graph:
+
+    # takes the user graph and convert it into an FSM logic 
+    # ready for conversion into file depending on target language
+    
+    STATE_NUM = 1
+    def __init__(self, usr_g: Graph):
+        self.usr_graph = g 
+        self._find_start()
+        self._find_end()
+        self.nodes = []
+        self.edges = []
+        self.default_action = []
+        
+          
+    def __find_start(self):
+        # extract start node
+        usr_g = self.usr_graph
+        for node in usr_g.nodes:
+            if node.name == "start"
+                self._start = node
+                return node
+        raise Exception("Start node not found") 
+
+    def __find_end(self):
+        # finding state that represent end state
+        usr_g = self.usr_graph
+        for node in usr_g.nodes:
+            # if the only non-error outgoing edge is pointing "end" state
+            if (node.valid_edge() == 1) and (node.points_t_end()):
+                self._end = node
+                return node
+        raise Exception("End node not found")
+
+    def _represent(self):
+        # takes user defined form and map it to this FSM Graph
+        usr_graph = self.usr_graph
+        self.repr = {} # representation of name -> node
+        for node in usr_graph.nodes:
+            if node.name == "end":
+                continue   # if node is the end, not included
+            n = self.create_node(node.name)      
+            self.repr[node.name] = n
+            self.nodes.append(n)
+
+
+    def create_node(self, name):
+        if name == "start":
+            n = FSM_Node(0, "start")
+        elif name == sekf.end.name:
+            n = FSM_Node(0, "end")
+        else:
+            n = FSM_Node(FSM_Graph.STATE_NUM)
+            FSM_Graph.STATE_NUM += 1 
+        return n    
+         
+    def find(self, name):
+        try:
+            return self.repr[name]
+        except:
+            raise Exception(f"{name} not included in FSM logic") 
+
+    def convert(self):
+        # convert from User Input into FSM logic
+        usr_graph = self.usr_graph
+        
+        for edge in usr_graph.edges:
+            frm = edge.nd_from
+            to = edge.nd_to
+            
+            if frm == self.end:
+                continue # end should not be pointing anywhere else
+            elif to.name == "end":
+                frm_node = self.find(frm.name)
+                self.default_action.append(frm.name)
+                continue
+            
+            frm_node = self.find(frm.name)
+            to_node = self.find(to.name)
+            
+
+

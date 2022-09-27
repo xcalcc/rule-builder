@@ -1,0 +1,43 @@
+#!/bin/bash
+# ============================================================
+# dependency checker before being able to run build_rule script
+# Required checks:
+# xvsa
+# python3
+# java
+# ============================================================
+py=python3
+jv=java
+xv=xvsa
+
+
+helptext(){
+    echo "-----------$1 not installed, please install $1 first ----------"
+}
+
+# check python
+if ! command -v $py>/dev/null;
+then
+    helptext "python3"
+    exit 2
+fi
+echo "python3 found"
+
+
+# check java
+if ! command -v $jv>/dev/null;
+then
+    helptext "java"
+    exit 2
+fi
+echo "java found"
+
+# check xvsa
+if ! command -v $xv>/dev/null;
+then
+    helptext "xvsa"
+    exit 2
+fi
+echo "xvsa found"
+
+echo "check completed, system requirements is fulfilled"

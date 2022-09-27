@@ -1,0 +1,179 @@
+#!/usr/bin/python3
+
+# ==================
+# Processing Component
+# Connector between translator and the compilation
+# ==================
+from err.translator import LangNotSupported, LangNotProvided
+import sys
+import argparse
+import os
+import subprocess
+import logging
+from lib import logger
+
+# ======== Logging Setup ==============
+logger = logger.get_log()
+
+# ====== ADD ARGUMENT PARSING ===========
+parser = argparse.ArgumentParser(description="Processor for User Input")
+parser.add_argument('input', nargs='+', help='user input file (.mi) format')
+parser.add_argument('-l', '--lang', help='target language for translation')
+parser.add_argument('-n', '--name', help='customized rule name')
+parser.add_argument('-r', '--ref', help='added reference for function reads')
+parser.add_argument('-d', '--dep', help='dependency files (.jar)')
+
+try:
+    args = parser.parse_args()
+except:
+    logger.error('Invalid call to Script')
+    sys.exit(1)
+
+# ======= INPUT VALIDATION ===============
+# find location of rule builder
+rb_loc = subprocess.run(['which','rbuild'], stdout=subprocess.PIPE, universal_newlines=True)
+if rb_loc.returncode != 0:
+    #print("RBNotFound: Library not found, you may not have included rule builder to PATH environment")
+    logger.error('RBNotFound: Rule Builder is not found, you may need to include rule builder to PATH environment')
+    sys.exit(1)
+
+rb_loc = rb_loc.stdout.strip()
+rb_loc = os.path.dirname(rb_loc)
+#print("RB loc:  {}".format(rb_loc))
+logger.debug("Rule Builder is located in %s" % (rb_loc))
+
+# language validation
+def checklang(l):
+    if not l:
+        raise LangNotProvided() 
+    lang_poss = ['c','java']
+    if l not in lang_poss:
+        raise LangNotSupported("{} is not supported".format(l))
+    else:
+        return l
+
+def checkfiles(files):
+    for f in files:
+        if not os.path.isfile(f):
+            #print("FileNotFound: {}".format(f))
+            logger.error('FileNotFound: %s'%(f))
+            sys.exit(1)
+
+lang = args.lang
+try:
+    checklang(lang)
+except (LangNotSupported, LangNotProvided) as e:
+    logger.exception('Target language related error:')
+    sys.exit(-1)
+logger.debug('Language inserted is %s'%(lang))
+
+# reference storage
+references = args.ref
+
+if references:
+    temp_r = references.split(':')
+    temp_r = [os.path.abspath(i) for i in temp_r]
+    checkfiles(temp_r)
+    references = ':'.join(temp_r)    
+logger.debug('References to read from %s'%(references))
+# dependencies
+dependencies = args.dep
+if dependencies:
+    # check each dependency
+    temp_deps =  dependencies.split(':')
+    temp_deps = [os.path.abspath(i) for i in temp_deps]
+    checkfiles(temp_deps)
+    dependencies = ':'.join(temp_deps) 
+logger.debug('Dependency files %s'%(dependencies))
+# naming (error/rule)
+error_name = args.name
+if not error_name:
+    error_name = "rule" # default
+logger.debug('Rule name is %s'%(error_name))
+
+# input
+files = args.input
+# set to absolute path and check exist
+files = [os.path.abspath(i) for i in files]
+checkfiles(files)
+logger.debug('Logic files included: %s'%(files))
+
+# dependencies
+deps = args.dep
+if deps:
+    temp_d = deps.split(':')
+    temp_d = [os.path.abspath(i) for i in temp_d]
+    checkfiles(temp_d)
+    deps = ':'.join(temp_d)
+logger.debug('The dependencies files include: %s'%(deps))
+
+
+logger.info("All input has been submitted successfully")
+
+# ====== TRANSLATION COMPONENT =======
+logger.info("Translation Begins")
+
+translator_loc = os.path.join(rb_loc, "lib/translator")
+#print(translator_loc)
+#print(f"Translator location: {translator_loc}")
+logger.debug("Translator location is in %s"%(translator_loc))
+translate_script = os.path.join(os.path.dirname(translator_loc), "translate.py")
+logger.debug('translation script found in %s'%(translate_script))
+#print('translating files', *files)
+logger.info("Translating the logic files %s into %s"%(*files, error_name+'.'+lang))
+cmd = translate_script + " "
+for i in files:
+    cmd = cmd + os.path.abspath(i) + " " 
+cmd += "-l " + lang + " "
+if references:
+    cmd += "-r " + references + " "
+if args.name:
+    cmd += "--name " + error_name 
+
+logger.debug("%s"%(cmd))
+translate_return_code = os.system(cmd)
+if translate_return_code != 0:
+    #print("TranslationError: Something wrong happened during transition")
+    logger.error("TranslationError: an error happened during the translation")
+    sys.exit(2)
+logger.info("Translation Successful")
+# ============ Compilation Process ================
+
+if lang=='c':
+    extension='.cxx'
+else:
+    extension='.java'
+
+generated_file = error_name + extension
+if not os.path.isfile(generated_file):
+    print("FileNotFound: {} can't be found".format(generated_file))
+
+
+# base-name dependencies
+temp_deps = dependencies.split(':')
+temp_deps = [os.path.basename(i) for i in temp_deps]
+dependencies = ':'.join(temp_deps)
+
+# do the rbuild <file> -j
+command = 'rbuild {} -j {}'.format(generated_file, dependencies) 
+#print('compilation command:',command)
+logger.info("Compilation command: %s"%(command))
+
+res = os.system(command)
+if not res == 0:
+    print("CompilationError: Unsuccessful compilation")
+    sys.exit(3)
+# copy content of log from rule side to this log
+
+
+log_object = open('rule_builder.log','a+')
+rule_log = os.path.join(rb_loc, 'rules/'+error_name+'/rule_builder.log')
+if not os.path.isfile(rule_log):
+    logger.info("Log file doesn't exist")
+rule_log_file = open(rule_log, 'r')
+log_object.write(rule_log_file.read())
+log_object.close()
+rule_log_file.close()
+
+logger.info("Compilation Successful")
+sys.exit(0)

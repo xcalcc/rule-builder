@@ -1,0 +1,93 @@
+#!/bin/bash
+
+# =================
+# Scanner
+# Lightweight scanner
+# for testing purpose
+# linking xvsa with a rule
+# =================
+
+
+call_help(){
+    echo "Usage: rscan <example_case> <rule> " 
+    exit 1
+}
+
+case_file=$1
+errors=$2
+
+if [ -z $case_file ];then
+    call_help
+fi
+
+if [ -z $errors ];then
+    call_help
+fi 
+
+rb=`which $0`
+rb=`dirname $rb` # Rule Builder directory
+
+
+# check rule if exist it $rb/rules
+if [ ! -d "$rb/rules/$errors" ]; then
+    echo "$errors don't exist"
+    exit 2
+fi
+
+rule_dir="$rb/rules/$errors"
+if [ -d "$rb/rules/$errors/classes" ];then
+    rm -r $rule_dir/classes
+fi
+# ============== CASE COMPILATION ==============
+mkdir $rule_dir/classes # create directory to store class files
+
+# if no dependency, no need to link anything
+depn=$rule_dir/depn/*
+depn_n=`ls -1 $rule_dir/depn | wc -l`
+echo "dependencies $depn_n"
+if [ $depn_n -eq 0 ]; then
+    cmd="javac $case_file -d $rule_dir/classes"
+else
+    cmd="javac $case_file -d $rule_dir/classes -cp "
+    for f in $rule_dir/depn/*.jar
+    do
+        name=`basename $f`
+        cmd="$cmd$name:"
+    done
+    cmd="${cmd%?}"
+fi
+
+echo "$cmd"
+$cmd
+# ============== RUN XVSA ==============
+classes="$rule_dir/classes"
+#class_files=$classes/*
+class_files=`find $classes -name '*.class'`
+
+scan="xvsa ${class_files[@]} "
+
+#for f in $rule_dir/depn/*.jar
+#do
+#    name=`basename $f`
+#    scan="$scan -Wf,-cp=$rule_dir/depn/$name"
+#done
+
+if [ $depn_n -gt 0 ]; then
+    for f in $rule_dir/depn/*.jar;
+    do
+        name=`basename $f`
+        scan="$scan -Wf,-cp=$rule_dir/depn/$name"
+    done
+fi
+
+# lib.o may exist or not
+scan="$scan $rule_dir/scan/user_def_rule.a -VSA:certj=1  $rb/lib/rt.o"
+
+if [ -f $rule_dir/scan/lib.o ]; then
+    scan="$scan $rule_dir/scan/lib.o"
+fi
+
+
+echo $scan
+$scan
+

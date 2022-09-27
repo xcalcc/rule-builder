@@ -19,3 +19,5 @@ Building comes right after translation. Translation will generate some source fi
 
 For demonstrative purposes, you can look under test/ for some examples.
 
+3. github
+Package rt.o to rt.o.tgz to avoid large file to github.

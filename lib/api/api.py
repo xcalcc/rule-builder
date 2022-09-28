@@ -1,14 +1,14 @@
 import requests
 
 class API:
-    URL = "http://39.108.212.149:8080"
+    URL = "http://127.0.0.1:8080"
     
     @classmethod
     def login(cls):
         link = cls.URL+'/api/auth_service/v2/login'
         data = {
-            "username": "admin",
-            "password": "admin"
+            "username": "xxx",
+            "password": "xxx"
         }
         response = requests.post(url=link, json=data)
 
